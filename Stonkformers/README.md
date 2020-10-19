@@ -4,7 +4,7 @@ An exploration of the [Attention is All You Need](https://arxiv.org/abs/1706.037
 
 ### Run Docker Container
 
-docker run -it --gpus=all --rm -v $(realpath ~/Desktop/Transformers):/tf/notebooks -p 8888:8888 tensorflow/tensorflow:latest-gpu-jupyter
+docker run -it --gpus=all --rm -v $(realpath ~/Desktop/StockChek/Stonkformers):/tf/notebooks -p 8888:8888 tensorflow/tensorflow:latest-gpu-jupyter
 
 ### Contents
 
