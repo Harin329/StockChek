@@ -1,10 +1,10 @@
-#### Stonkformers ####
+# Stonkformers
 
 An exploration of the [Attention is All You Need](https://arxiv.org/abs/1706.03762) (Vaswani, 2017) paper. Both the Tensorflow and PyTorch Transformer implementation were tested, with a final adaptation for time series modeling.
 
 ### Run Docker Container
 
-docker run -it --gpus=all --rm -v $(realpath ~/Desktop/Transformers):/tf/notebooks -p 8888:8888 tensorflow/tensorflow:latest-gpu-jupyter
+docker run -it --gpus=all --rm -v $(realpath ~/Desktop/StockChek/Stonkformers):/tf/notebooks -p 8888:8888 tensorflow/tensorflow:latest-gpu-jupyter
 
 ### Contents
 
