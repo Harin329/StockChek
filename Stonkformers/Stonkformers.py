@@ -60,7 +60,7 @@ class TransAm(nn.Module):
             self.src_mask = mask
 
         src = self.pos_encoder(src)
-        output = self.transformer_encoder(src,self.src_mask)#, self.src_mask)
+        output = self.transformer_encoder(src,self.src_mask)
         output = self.decoder(output)
         return output
 
@@ -80,15 +80,29 @@ def create_inout_sequences(input_data, tw):
         train_label = input_data[i+output_window:i+tw+output_window]
         inout_seq.append((train_seq ,train_label))
     return torch.FloatTensor(inout_seq)
+    
+
+def create_pred_sequences(input_data):
+    inout_seq = []
+    inout_seq.append(input_data)
+    return torch.FloatTensor(inout_seq)
 
 
 def get_batch(source, i,batch_size):
-    seq_len = min(batch_size, len(source) - 1 - i)
+    seq_len = min(batch_size, len(source) - i)
     data = source[i:i+seq_len]    
     # Feature Size = 1
-    input = torch.stack(torch.stack([item[0] for item in data]).chunk(input_window,1)) 
+    data_input = torch.stack(torch.stack([item[0] for item in data]).chunk(input_window,1)) 
     target = torch.stack(torch.stack([item[1] for item in data]).chunk(input_window,1))
-    return input, target
+    return data_input, target
+
+
+def get_pred_batch(source, i,batch_size):
+    seq_len = min(batch_size, len(source) - i)
+    data = source[i:i+seq_len]    
+    # Feature Size = 1
+    data_input = torch.stack(torch.stack([item for item in data]).chunk(input_window,1)) 
+    return data_input
 
 
 def train(train_data):
@@ -126,7 +140,7 @@ def plot_and_loss(eval_model, data_source,epoch):
     test_result = torch.Tensor(0)    
     truth = torch.Tensor(0)
     with torch.no_grad():
-        for i in range(0, len(data_source) - 1):
+        for i in range(0, len(data_source)):
             data, target = get_batch(data_source, i,1)
             output = eval_model(data)            
             total_loss += criterion(output, target).item()
@@ -139,21 +153,21 @@ def plot_and_loss(eval_model, data_source,epoch):
     pyplot.plot(scaler.inverse_transform(truth[:500].reshape(-1, 1)),color="blue")
     pyplot.grid(True, which='both')
     pyplot.axhline(y=0, color='k')
-    pyplot.savefig('final%d.png'%epoch)
+    # pyplot.savefig('final%d.png'%epoch)
     pyplot.show()
     
+    if (i == 0):
+        return total_loss
+
     return total_loss / i
 
 
 # Predict N Steps
 def predict_future(eval_model, data_source,steps):
-    eval_model.eval() 
-    total_loss = 0.
-    test_result = torch.Tensor(0)    
-    truth = torch.Tensor(0)
-    data, _ = get_batch(data_source, 0,1)
+    eval_model.eval()
+    data = get_pred_batch(data_source, 0,1)
     with torch.no_grad():
-        for i in range(0, steps):            
+        for _ in range(0, steps):            
             output = eval_model(data[-input_window:])                        
             data = torch.cat((data, output[-1:]))
             
@@ -164,7 +178,7 @@ def predict_future(eval_model, data_source,steps):
     pyplot.plot(scaler.inverse_transform(data[:input_window].reshape(-1, 1)),color="blue")    
     pyplot.grid(True, which='both')
     pyplot.axhline(y=0, color='k')
-    pyplot.savefig('final-future%d.png'%steps)
+    # pyplot.savefig('final-future%d.png'%steps)
     pyplot.show()
 
 
@@ -180,27 +194,30 @@ def evaluate(eval_model, data_source):
     return total_loss / len(data_source)
 
 
-series = read_csv('Data/TSLA.csv', header=0, index_col=0, parse_dates=True, squeeze=True)["4. close"]
-# series = read_csv('Data/AAPL.csv', header=0, index_col=0, parse_dates=True, squeeze=True)["5. adjusted close"]
+# series = read_csv('Data/TSLA.csv', header=0, index_col=0, parse_dates=True, squeeze=True)["4. close"]
+series = read_csv('Data/AAPL.csv', header=0, index_col=0, parse_dates=True, squeeze=True)["5. adjusted close"]
     
 amplitude = scaler.fit_transform(series.to_numpy().reshape(-1, 1)).reshape(-1)
 
-samples = 1724
+# samples = 1788
+samples = 4200
+
 train_data = amplitude[:samples]
 test_data = amplitude[samples:]
+final_data = amplitude[-input_window:]
+
+final_data = create_pred_sequences(final_data)
+final_data = final_data.to(device)
 
 train_sequence = create_inout_sequences(train_data,input_window)
-train_sequence = train_sequence[:-output_window]
-
 test_data = create_inout_sequences(test_data,input_window)
-test_data = test_data[:-output_window]
 
 train_data = train_sequence.to(device)
 val_data = test_data.to(device)
 
 
-print(train_data)
-print(val_data)
+print(train_data.shape)
+print(val_data.shape)
 print(scaler.inverse_transform(amplitude.reshape(-1, 1)))
 
 
@@ -211,15 +228,14 @@ lr = 0.005
 optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 1.0, gamma=0.95)
 
-epochs = 100
+epochs = 250
 
 for epoch in range(1, epochs + 1):
     epoch_start_time = time.time()
     train(train_data)
     
-    if(epoch % 100 is 0):
+    if(epoch % 250 is 0):
         val_loss = plot_and_loss(model, val_data,epoch)
-        predict_future(model, val_data,65)
     else:
         val_loss = evaluate(model, val_data)
    
@@ -230,3 +246,4 @@ for epoch in range(1, epochs + 1):
 
     scheduler.step() 
 
+predict_future(model, final_data,65)

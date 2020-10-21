@@ -15,3 +15,6 @@ Stonkformers - Jupyter Notebook
 - Applied Implementation of Time Series Stock Price Prediction in PyTorch
 - Alpha Vantage Stock Data
 - Blue True, Red Prediction
+
+Stonkformers - Python Script
+- Applied Implementation + Tuning
