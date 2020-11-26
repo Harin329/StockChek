@@ -1,0 +1,7 @@
+numpy
+pandas
+alpha-vantage
+pprint
+torch
+matplotlib
+scikit-learn
